@@ -1,0 +1,507 @@
+<title>สมุดยอดขาย</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600&family=Prompt:wght@500;600&display=swap">
+<style>
+/* Layout: one working column. Month switcher, income summary with target progress, year strip, entry form, month table, settings. */
+:root {
+  --bg: #eef3f6;
+  --surface: #ffffff;
+  --ink: #102534;
+  --muted: #587081;
+  --line: #d5e0e7;
+  --accent: #087a8a;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcf0f3;
+  --good: #1b7a49;
+  --good-soft: #def2e6;
+  --warn: #9a5a00;
+  --warn-soft: #fbebc9;
+  --info: #2b5fa8;
+  --info-soft: #e0eaf8;
+  --bad: #b3261e;
+  --bad-soft: #fbe0de;
+  --field: #f7fafb;
+  --font-display: "Prompt", "Noto Sans Thai", system-ui, sans-serif;
+  --font-body: "Noto Sans Thai", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1a24;
+    --surface: #132733;
+    --ink: #e6f0f5;
+    --muted: #93aebd;
+    --line: #26414f;
+    --accent: #4cc3d3;
+    --accent-ink: #062830;
+    --accent-soft: #17414b;
+    --good: #6fd09a;
+    --good-soft: #17402b;
+    --warn: #f2c26b;
+    --warn-soft: #43330f;
+    --info: #8db7ef;
+    --info-soft: #1c3556;
+    --bad: #ff8f87;
+    --bad-soft: #4a1f1c;
+    --field: #0f2230;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1a24;
+  --surface: #132733;
+  --ink: #e6f0f5;
+  --muted: #93aebd;
+  --line: #26414f;
+  --accent: #4cc3d3;
+  --accent-ink: #062830;
+  --accent-soft: #17414b;
+  --good: #6fd09a;
+  --good-soft: #17402b;
+  --warn: #f2c26b;
+  --warn-soft: #43330f;
+  --info: #8db7ef;
+  --info-soft: #1c3556;
+  --bad: #ff8f87;
+  --bad-soft: #4a1f1c;
+  --field: #0f2230;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; }
+h1 { font-size: 26px; line-height: 1.25; }
+h2 { font-size: 17px; }
+.num { font-variant-numeric: tabular-nums; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+.top p { margin: 2px 0 0; color: var(--muted); }
+.monthnav { display: flex; align-items: center; gap: 8px; }
+.monthnav .label { font-family: var(--font-display); font-weight: 500; min-width: 9.5em; text-align: center; font-size: 17px; }
+.iconbtn {
+  width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); cursor: pointer; font-size: 18px; line-height: 1;
+}
+.iconbtn:hover { border-color: var(--accent); }
+
+.notice {
+  background: var(--warn-soft); color: var(--warn); border-radius: 8px;
+  padding: 10px 14px; font-size: 14px;
+}
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.panel > h2 { margin-bottom: 14px; }
+
+.summary { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr); gap: 20px; }
+.hero .cap { color: var(--muted); font-size: 14px; }
+.hero .big { font-family: var(--font-display); font-weight: 600; font-size: 40px; line-height: 1.15; margin: 2px 0 14px; }
+.hero .big small { font-size: 16px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+.track { height: 12px; background: var(--accent-soft); border-radius: 99px; overflow: hidden; }
+.fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.35s ease; }
+.fill.done { background: var(--good); }
+.progress-note { margin-top: 8px; font-size: 14px; color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; margin: 0; align-content: start; }
+.stats div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.stats dt { color: var(--muted); }
+.stats dd { margin: 0; font-weight: 500; text-align: right; }
+
+.year { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; align-items: end; height: 150px; }
+.col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%; min-width: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.col .bar { width: 100%; max-width: 38px; background: var(--accent-soft); border-radius: 4px 4px 0 0; min-height: 3px; }
+.col:hover .bar { background: var(--accent); opacity: 0.7; }
+.col.on .bar { background: var(--accent); }
+.col .m { font-size: 12px; color: var(--muted); }
+.col.on .m { color: var(--ink); font-weight: 600; }
+
+form.entry { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 13px; color: var(--muted); }
+input, select {
+  width: 100%; min-height: 42px; padding: 8px 10px; background: var(--field);
+  border: 1px solid var(--line); border-radius: 8px;
+}
+input:focus, select:focus { border-color: var(--accent); }
+.entry .actions { grid-column: span 2; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; align-self: end; }
+.btn {
+  min-height: 42px; padding: 8px 20px; border-radius: 8px; border: 1px solid var(--accent);
+  background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; color: var(--accent); }
+.hint { font-size: 14px; color: var(--muted); }
+.hint.err { color: var(--bad); }
+.hint.ok { color: var(--good); }
+
+.tablewrap { overflow-x: auto; }
+table { width: 100%; min-width: 1080px; border-collapse: collapse; }
+th, td { padding: 10px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 13px; font-weight: 500; color: var(--muted); }
+td.r, th.r { text-align: right; }
+td.dim { color: var(--muted); }
+tfoot td { font-weight: 600; border-bottom: 0; background: var(--accent-soft); }
+.empty { padding: 28px 8px; color: var(--muted); text-align: center; }
+.tag { font-size: 11px; background: var(--info-soft); color: var(--info); border-radius: 4px; padding: 1px 6px; margin-left: 6px; }
+.pill { display: inline-block; font-size: 13px; padding: 2px 10px; border-radius: 99px; font-weight: 500; }
+.pill.s0 { background: var(--warn-soft); color: var(--warn); }
+.pill.s1 { background: var(--info-soft); color: var(--info); }
+.pill.s2 { background: var(--good-soft); color: var(--good); }
+.pill.o0 { background: var(--accent-soft); color: var(--accent); }
+.pill.o1 { background: var(--warn-soft); color: var(--warn); }
+.pill.o2 { background: var(--good-soft); color: var(--good); }
+.pill.o3, .pill.o4 { background: var(--bad-soft); color: var(--bad); }
+.del { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+.del:hover { color: var(--bad); }
+
+details.settings summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; font-size: 17px; }
+details.settings[open] summary { margin-bottom: 14px; }
+.sgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.mrow { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)) 40px; gap: 10px; margin-bottom: 10px; align-items: end; }
+.mrow .del { height: 42px; }
+.shead { font-size: 13px; color: var(--muted); }
+.checks { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 10px; }
+.checks label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.checks input { width: 18px; min-height: 18px; height: 18px; accent-color: var(--accent); }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+
+@media (max-width: 760px) {
+  .summary { grid-template-columns: minmax(0, 1fr); }
+  form.entry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .entry .actions { grid-column: 1 / -1; }
+  .sgrid { grid-template-columns: minmax(0, 1fr); }
+  .mrow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px; }
+  .mrow .field:first-child { grid-column: 1 / -2; }
+  .hero .big { font-size: 34px; }
+  .stats { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>สมุดยอดขาย</h1>
+      <p>บันทึกยอดขายเครื่องกรองน้ำ สรุปรายเดือน และคำนวณรายได้</p>
+    </div>
+    <div class="monthnav" role="group" aria-label="เลือกเดือน">
+      <button class="iconbtn" id="prev" aria-label="เดือนก่อนหน้า">‹</button>
+      <div class="label" id="monthLabel" aria-live="polite"></div>
+      <button class="iconbtn" id="next" aria-label="เดือนถัดไป">›</button>
+    </div>
+  </header>
+
+  <div class="notice" id="notice">หน้านี้เป็นตัวอย่างให้ดูหน้าตา ข้อมูลและตัวเลขทุกอย่างเป็นข้อมูลสมมติ และเก็บไว้ในเบราว์เซอร์นี้เท่านั้น</div>
+
+  <section class="panel summary" aria-label="สรุปเดือนนี้">
+    <div class="hero">
+      <div class="cap">รายได้รวมเดือนนี้</div>
+      <div class="big num"><span id="income">0</span><small>บาท</small></div>
+      <div class="track" role="progressbar" aria-label="ความคืบหน้าถึงเป้ายอดขาย" id="track" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="fill" style="width:0%"></div></div>
+      <div class="progress-note" id="progressNote"></div>
+    </div>
+    <dl class="stats num" id="stats"></dl>
+  </section>
+
+  <section class="panel" aria-label="ยอดขายทั้งปี">
+    <h2 id="yearTitle">ยอดขายรายเดือน</h2>
+    <div class="year" id="year"></div>
+  </section>
+
+  <section class="panel" aria-label="บันทึกการขายใหม่">
+    <h2>บันทึกการขายใหม่</h2>
+    <form class="entry" id="entry" novalidate>
+      <div class="field"><label for="fDate">วันที่</label><input type="date" id="fDate" required></div>
+      <div class="field"><label for="fOrder">เลขออเดอร์</label><input type="text" id="fOrder" autocomplete="off" placeholder="CWM... / 8000..."></div>
+      <div class="field"><label for="fCustomer">ชื่อลูกค้า</label><input type="text" id="fCustomer" autocomplete="off" required></div>
+      <div class="field"><label for="fAgent">รหัสตัวแทน</label><input type="text" id="fAgent" autocomplete="off"></div>
+      <div class="field"><label for="fModel">รุ่น</label><select id="fModel"></select></div>
+      <div class="field"><label for="fQty">จำนวน (เครื่อง)</label><input type="number" id="fQty" min="1" step="1" value="1" inputmode="numeric"></div>
+      <div class="field"><label for="fStatus">สถานะออเดอร์</label><select id="fStatus"></select></div>
+      <div class="field"><label for="fInstall">สถานะงานติดตั้ง</label><select id="fInstall"></select></div>
+      <div class="field"><label for="fGift">ของแถม</label><input type="text" id="fGift" autocomplete="off"></div>
+      <div class="field"><label for="fContest">ค่าคอนเทส (บาท)</label><input type="number" id="fContest" min="0" step="1" value="0" inputmode="numeric"></div>
+      <div class="actions">
+        <button class="btn" type="submit">บันทึกรายการ</button>
+        <span class="hint" id="formMsg" role="status"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" aria-label="รายการขายของเดือน">
+    <h2 id="tableTitle">รายการขาย</h2>
+    <div class="tablewrap" id="tableWrap"></div>
+  </section>
+
+  <details class="panel settings" id="settings">
+    <summary>ตั้งค่าเป้า โบนัส สถานะที่นับยอด และรุ่นสินค้า</summary>
+    <div class="sgrid">
+      <div class="field"><label for="sTarget">เป้ายอดขายต่อเดือน (บาท)</label><input type="number" id="sTarget" min="0" step="1000"></div>
+      <div class="field"><label for="sBonus">โบนัสเมื่อถึงเป้า (บาท)</label><input type="number" id="sBonus" min="0" step="100"></div>
+      <div class="field"><label for="sBase">รายได้ฐานต่อเดือน (บาท)</label><input type="number" id="sBase" min="0" step="100"></div>
+    </div>
+    <div class="shead">สถานะออเดอร์ที่นับเป็นยอดขายและได้ค่าคอม (ตามที่ Coway นับ)</div>
+    <div class="checks" id="statusCount" style="margin-bottom:20px"></div>
+    <div class="shead">รุ่นเครื่องกรองน้ำ ราคา ค่าคอม (% ของราคา) และ PV ต่อเครื่อง</div>
+    <div id="models" style="margin-top:10px"></div>
+    <div class="settings-actions">
+      <button class="btn ghost" type="button" id="addModel">เพิ่มรุ่น</button>
+      <button class="btn ghost" type="button" id="resetAll">ล้างข้อมูลและกลับเป็นตัวอย่าง</button>
+    </div>
+  </details>
+</div>
+
+<script>
+(function () {
+  var KEY = "sales-notebook-demo-v2";
+  var MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+  var MSHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  var INSTALL = ["รอนัดติดตั้ง","นัดแล้ว","ติดตั้งแล้ว"];
+  var STATUS = ["Net Order","เช็คสินเชื่อ","สำเร็จ","ไม่สำเร็จ","Order Cancel"];
+  var nf = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+
+  function seed() {
+    return {
+      settings: {
+        target: 100000, bonus: 2000, base: 0, counted: ["Net Order"],
+        models: [
+          { name: "รุ่น A (ตัวอย่าง)", price: 15000, pct: 10, pv: 100 },
+          { name: "รุ่น B (ตัวอย่าง)", price: 20000, pct: 10, pv: 150 },
+          { name: "รุ่น C (ตัวอย่าง)", price: 25000, pct: 10, pv: 200 }
+        ]
+      },
+      sales: [
+        { id: 1, date: "2026-10-04", order: "CWM0000001 / 8000000001", customer: "ลูกค้าตัวอย่าง 1", agent: "A1234", model: "รุ่น B (ตัวอย่าง)", qty: 2, status: "Net Order", contest: 0, install: 2, gift: "ไส้กรองสำรอง", example: true },
+        { id: 2, date: "2026-10-18", order: "CWM0000002 / 8000000002", customer: "ลูกค้าตัวอย่าง 2", agent: "A1234", model: "รุ่น C (ตัวอย่าง)", qty: 1, status: "Net Order", contest: 500, install: 2, gift: "", example: true },
+        { id: 3, date: "2026-11-02", order: "CWM0000003 / 8000000003", customer: "ลูกค้าตัวอย่าง 3", agent: "A1234", model: "รุ่น A (ตัวอย่าง)", qty: 1, status: "Net Order", contest: 0, install: 2, gift: "ไส้กรองสำรอง", example: true },
+        { id: 4, date: "2026-11-05", order: "CWM0000004 / 8000000004", customer: "ลูกค้าตัวอย่าง 4", agent: "A1234", model: "รุ่น B (ตัวอย่าง)", qty: 2, status: "Net Order", contest: 500, install: 1, gift: "กระบอกน้ำ", example: true },
+        { id: 5, date: "2026-11-09", order: "CWM0000005 / 8000000005", customer: "ลูกค้าตัวอย่าง 5", agent: "A1234", model: "รุ่น C (ตัวอย่าง)", qty: 1, status: "เช็คสินเชื่อ", contest: 0, install: 0, gift: "", example: true },
+        { id: 6, date: "2026-11-10", order: "CWM0000006 / 8000000006", customer: "ลูกค้าตัวอย่าง 6", agent: "A1234", model: "รุ่น A (ตัวอย่าง)", qty: 1, status: "Order Cancel", contest: 0, install: 0, gift: "", example: true }
+      ],
+      nextId: 7
+    };
+  }
+
+  var state;
+  try { var raw = localStorage.getItem(KEY); state = raw ? JSON.parse(raw) : null; } catch (e) { state = null; }
+  if (!state || !state.settings || !state.sales || !state.settings.counted) state = seed();
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  var latest = state.sales.reduce(function (a, s) { return s.date > a ? s.date : a; }, "");
+  var now = new Date();
+  var view = latest
+    ? { y: +latest.slice(0, 4), m: +latest.slice(5, 7) - 1 }
+    : { y: now.getFullYear(), m: now.getMonth() };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function baht(n) { return nf.format(Math.round(n)); }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  function isCounted(s) { return state.settings.counted.indexOf(s.status) >= 0; }
+  function calc(s) {
+    if (!isCounted(s)) return { counted: false, sales: 0, pv: 0, comm: 0 };
+    var m = state.settings.models.filter(function (x) { return x.name === s.model; })[0] || { price: 0, pct: 0, pv: 0 };
+    var qty = +s.qty || 0;
+    return { counted: true, sales: qty * m.price, pv: qty * m.pv, comm: qty * m.price * m.pct / 100 };
+  }
+  function inMonth(s, y, m) { return s.date.slice(0, 7) === y + "-" + pad(m + 1); }
+
+  function monthTotals(y, m) {
+    var t = { n: 0, qty: 0, sales: 0, pv: 0, comm: 0, contest: 0, installed: 0, credit: 0, failed: 0 };
+    state.sales.forEach(function (s) {
+      if (!inMonth(s, y, m)) return;
+      var c = calc(s);
+      t.contest += +s.contest || 0;
+      if (s.status === "เช็คสินเชื่อ") t.credit++;
+      if (s.status === "ไม่สำเร็จ" || s.status === "Order Cancel") t.failed++;
+      if (!c.counted) return;
+      t.n++; t.qty += +s.qty || 0; t.sales += c.sales; t.pv += c.pv; t.comm += c.comm;
+      if (s.install === 2) t.installed++;
+    });
+    var st = state.settings;
+    t.bonus = (t.sales > 0 && t.sales >= st.target) ? st.bonus : 0;
+    t.income = t.n === 0 ? 0 : st.base + t.comm + t.contest + t.bonus;
+    return t;
+  }
+
+  function renderSummary() {
+    var t = monthTotals(view.y, view.m), st = state.settings;
+    $("monthLabel").textContent = MONTHS[view.m] + " " + view.y;
+    $("income").textContent = baht(t.income);
+    var pct = st.target > 0 ? t.sales / st.target : 0;
+    var fill = $("fill");
+    fill.style.width = Math.min(100, pct * 100) + "%";
+    fill.className = "fill" + (t.bonus > 0 ? " done" : "");
+    $("track").setAttribute("aria-valuenow", String(Math.round(Math.min(100, pct * 100))));
+    $("progressNote").textContent = st.target <= 0 ? "ยังไม่ได้ตั้งเป้ายอดขาย"
+      : t.bonus > 0 ? "ถึงเป้าแล้ว (" + Math.round(pct * 100) + "%) ได้โบนัส " + baht(t.bonus) + " บาท"
+      : "ยอดขาย " + baht(t.sales) + " จากเป้า " + baht(st.target) + " บาท (" + Math.round(pct * 100) + "%) เหลืออีก " + baht(Math.max(0, st.target - t.sales)) + " บาท";
+    var rows = [
+      ["ขายได้", t.qty + " เครื่อง"],
+      ["PV รวม", nf.format(t.pv)],
+      ["ยอดขาย", baht(t.sales) + " บาท"],
+      ["ค่าคอม", baht(t.comm) + " บาท"],
+      ["ค่าคอนเทส", baht(t.contest) + " บาท"],
+      ["โบนัสถึงเป้า", baht(t.bonus) + " บาท"],
+      ["ติดตั้งแล้ว", t.installed + " จาก " + t.n + " ใบ"],
+      ["ยังไม่ติดตั้ง", (t.n - t.installed) + " ใบ"],
+      ["เช็คสินเชื่อ", t.credit + " ใบ"],
+      ["ไม่สำเร็จ/ยกเลิก", t.failed + " ใบ"]
+    ];
+    $("stats").innerHTML = rows.map(function (r) { return "<div><dt>" + r[0] + "</dt><dd>" + r[1] + "</dd></div>"; }).join("");
+  }
+
+  function renderYear() {
+    $("yearTitle").textContent = "ยอดขายรายเดือน ปี " + view.y;
+    var vals = [], max = 0, i;
+    for (i = 0; i < 12; i++) { var v = monthTotals(view.y, i).sales; vals.push(v); if (v > max) max = v; }
+    $("year").innerHTML = vals.map(function (v, i) {
+      var h = max > 0 ? Math.max(2, Math.round(v / max * 100)) : 2;
+      return '<button type="button" class="col' + (i === view.m ? " on" : "") + '" data-m="' + i + '" title="' + MONTHS[i] + ": " + baht(v) + ' บาท" aria-label="' + MONTHS[i] + " ยอดขาย " + baht(v) + ' บาท"><div class="bar" style="height:' + h + '%"></div><span class="m">' + MSHORT[i] + "</span></button>";
+    }).join("");
+  }
+
+  function renderTable() {
+    $("tableTitle").textContent = "รายการขาย " + MONTHS[view.m] + " " + view.y;
+    var list = state.sales.filter(function (s) { return inMonth(s, view.y, view.m); })
+      .sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id; });
+    if (!list.length) {
+      $("tableWrap").innerHTML = '<div class="empty">เดือนนี้ยังไม่มีรายการขาย กรอกฟอร์มด้านบนเพื่อบันทึกรายการแรก</div>';
+      return;
+    }
+    var t = monthTotals(view.y, view.m);
+    var body = list.map(function (s) {
+      var c = calc(s);
+      var d = s.date.slice(8, 10) + "/" + s.date.slice(5, 7);
+      var si = Math.max(0, STATUS.indexOf(s.status));
+      function money(v, fmt) { return c.counted ? fmt(v) : "-"; }
+      return "<tr><td class='num'>" + d + "</td>" +
+        "<td class='num'>" + esc(s.order || "-") + "</td>" +
+        "<td>" + esc(s.customer) + (s.example ? '<span class="tag">ตัวอย่าง</span>' : "") + "</td>" +
+        "<td>" + esc(s.agent || "-") + "</td>" +
+        "<td>" + esc(s.model) + "</td>" +
+        "<td class='r num'>" + s.qty + "</td>" +
+        "<td><span class='pill o" + si + "'>" + esc(s.status) + "</span></td>" +
+        "<td class='r num" + (c.counted ? "" : " dim") + "'>" + money(c.sales, baht) + "</td>" +
+        "<td class='r num" + (c.counted ? "" : " dim") + "'>" + money(c.pv, nf.format) + "</td>" +
+        "<td class='r num" + (c.counted ? "" : " dim") + "'>" + money(c.comm, baht) + "</td>" +
+        "<td class='r num'>" + baht(+s.contest || 0) + "</td>" +
+        "<td><span class='pill s" + s.install + "'>" + INSTALL[s.install] + "</span></td>" +
+        "<td>" + esc(s.gift || "-") + "</td>" +
+        "<td><button class='del' type='button' data-del='" + s.id + "' aria-label='ลบรายการของ " + esc(s.customer) + "'>ลบ</button></td></tr>";
+    }).join("");
+    $("tableWrap").innerHTML = "<table><thead><tr><th>วันที่</th><th>เลขออเดอร์</th><th>ลูกค้า</th><th>รหัสตัวแทน</th><th>รุ่น</th><th class='r'>จำนวน</th><th>สถานะออเดอร์</th><th class='r'>ยอดขาย</th><th class='r'>PV</th><th class='r'>ค่าคอม</th><th class='r'>ค่าคอนเทส</th><th>ติดตั้ง</th><th>ของแถม</th><th></th></tr></thead><tbody>" + body +
+      "</tbody><tfoot><tr><td colspan='5'>รวมเดือนนี้ (เฉพาะที่นับยอด)</td><td class='r num'>" + t.qty + "</td><td></td><td class='r num'>" + baht(t.sales) + "</td><td class='r num'>" + nf.format(t.pv) + "</td><td class='r num'>" + baht(t.comm) + "</td><td class='r num'>" + baht(t.contest) + "</td><td colspan='3'></td></tr></tfoot></table>";
+  }
+
+  function renderModelOptions() {
+    var sel = $("fModel"), cur = sel.value;
+    sel.innerHTML = state.settings.models.map(function (m) { return "<option>" + esc(m.name) + "</option>"; }).join("");
+    if (cur) sel.value = cur;
+  }
+
+  function renderModels() {
+    $("models").innerHTML = state.settings.models.map(function (m, i) {
+      return '<div class="mrow">' +
+        '<div class="field"><label for="mn' + i + '">ชื่อรุ่น</label><input id="mn' + i + '" data-i="' + i + '" data-k="name" value="' + esc(m.name) + '"></div>' +
+        '<div class="field"><label for="mp' + i + '">ราคา (บาท)</label><input id="mp' + i + '" type="number" min="0" step="100" data-i="' + i + '" data-k="price" value="' + m.price + '"></div>' +
+        '<div class="field"><label for="mc' + i + '">ค่าคอม (%)</label><input id="mc' + i + '" type="number" min="0" step="0.5" data-i="' + i + '" data-k="pct" value="' + m.pct + '"></div>' +
+        '<div class="field"><label for="mv' + i + '">PV/เครื่อง</label><input id="mv' + i + '" type="number" min="0" step="1" data-i="' + i + '" data-k="pv" value="' + m.pv + '"></div>' +
+        '<button class="del" type="button" data-delm="' + i + '" aria-label="ลบรุ่น ' + esc(m.name) + '">ลบ</button></div>';
+    }).join("");
+  }
+
+  function renderStatusChecks() {
+    $("statusCount").innerHTML = STATUS.map(function (s, i) {
+      return '<label for="sc' + i + '"><input type="checkbox" id="sc' + i + '" data-status="' + esc(s) + '"' + (state.settings.counted.indexOf(s) >= 0 ? " checked" : "") + "> " + esc(s) + "</label>";
+    }).join("");
+  }
+
+  function renderAll() { renderSummary(); renderYear(); renderTable(); }
+
+  /* month navigation */
+  function go(d) { view.m += d; if (view.m < 0) { view.m = 11; view.y--; } if (view.m > 11) { view.m = 0; view.y++; } renderAll(); }
+  $("prev").addEventListener("click", function () { go(-1); });
+  $("next").addEventListener("click", function () { go(1); });
+  $("year").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-m]"); if (!b) return;
+    view.m = +b.getAttribute("data-m"); renderAll();
+  });
+
+  /* entry form */
+  $("fInstall").innerHTML = INSTALL.map(function (s, i) { return '<option value="' + i + '">' + s + "</option>"; }).join("");
+  $("fInstall").value = "0";
+  $("fStatus").innerHTML = STATUS.map(function (s) { return "<option>" + s + "</option>"; }).join("");
+  $("fDate").value = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+  $("entry").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var msg = $("formMsg"), date = $("fDate").value, cust = $("fCustomer").value.trim(), qty = parseInt($("fQty").value, 10);
+    if (!date || !cust || !qty || qty < 1 || !$("fModel").value) {
+      msg.className = "hint err"; msg.textContent = "กรอกวันที่ ชื่อลูกค้า รุ่น และจำนวนให้ครบก่อนบันทึก"; return;
+    }
+    state.sales.push({ id: state.nextId++, date: date, order: $("fOrder").value.trim(), customer: cust, agent: $("fAgent").value.trim(), model: $("fModel").value, qty: qty,
+      status: $("fStatus").value, contest: Math.max(0, +$("fContest").value || 0), install: +$("fInstall").value, gift: $("fGift").value.trim() });
+    save();
+    view.y = +date.slice(0, 4); view.m = +date.slice(5, 7) - 1;
+    $("fOrder").value = ""; $("fCustomer").value = ""; $("fGift").value = ""; $("fQty").value = "1"; $("fContest").value = "0";
+    msg.className = "hint ok"; msg.textContent = "บันทึกแล้ว: " + cust;
+    renderAll();
+  });
+  $("tableWrap").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-del]"); if (!b) return;
+    var id = +b.getAttribute("data-del");
+    state.sales = state.sales.filter(function (s) { return s.id !== id; });
+    save(); renderAll();
+  });
+
+  /* settings */
+  function fillSettings() { $("sTarget").value = state.settings.target; $("sBonus").value = state.settings.bonus; $("sBase").value = state.settings.base; }
+  [["sTarget", "target"], ["sBonus", "bonus"], ["sBase", "base"]].forEach(function (p) {
+    $(p[0]).addEventListener("input", function () { state.settings[p[1]] = Math.max(0, +this.value || 0); save(); renderAll(); });
+  });
+  $("statusCount").addEventListener("change", function (e) {
+    var s = e.target.getAttribute("data-status"); if (!s) return;
+    var arr = state.settings.counted, i = arr.indexOf(s);
+    if (e.target.checked && i < 0) arr.push(s);
+    if (!e.target.checked && i >= 0) arr.splice(i, 1);
+    save(); renderAll();
+  });
+  $("models").addEventListener("input", function (e) {
+    var t = e.target, i = t.getAttribute("data-i"); if (i === null) return;
+    var k = t.getAttribute("data-k"), m = state.settings.models[+i], old = m.name;
+    if (k === "name") {
+      var nv = t.value;
+      state.sales.forEach(function (s) { if (s.model === old) s.model = nv; });
+      m.name = nv; renderModelOptions();
+    } else { m[k] = Math.max(0, +t.value || 0); }
+    save(); renderAll();
+  });
+  $("models").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-delm]"); if (!b) return;
+    if (state.settings.models.length <= 1) return;
+    state.settings.models.splice(+b.getAttribute("data-delm"), 1);
+    save(); renderModels(); renderModelOptions(); renderAll();
+  });
+  $("addModel").addEventListener("click", function () {
+    state.settings.models.push({ name: "รุ่นใหม่ " + (state.settings.models.length + 1), price: 0, pct: 10, pv: 0 });
+    save(); renderModels(); renderModelOptions();
+  });
+  $("resetAll").addEventListener("click", function () {
+    state = seed(); save(); fillSettings(); renderModels(); renderModelOptions(); renderStatusChecks();
+    view = { y: 2026, m: 10 }; renderAll();
+  });
+
+  fillSettings(); renderModels(); renderModelOptions(); renderStatusChecks(); renderAll();
+})();
+</script>
